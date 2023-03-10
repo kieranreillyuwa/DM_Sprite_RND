@@ -1,0 +1,7 @@
+#include <autoconf.h>
+
+spm:
+  address: 0x0
+  size: 0x8000
+  placement:
+    before: app

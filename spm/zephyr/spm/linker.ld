@@ -19,23 +19,25 @@
 #include <zephyr/linker/linker-tool.h>
 
 /* physical address of RAM */
+/* #ifdef CONFIG_XIP */
 #define ROMABLE_REGION FLASH
 #define RAMABLE_REGION SRAM
-
-#define _DATA_IN_ROM
+/* #else
+#define ROMABLE_REGION SRAM
+#define RAMABLE_REGION SRAM
+#endif */
 
 #if USE_PARTITION_MANAGER
+
 #include <pm_config.h>
 
-#ifdef LINK_INTO_s1
+#if CONFIG_NCS_IS_VARIANT_IMAGE && defined(PM_S0_ID)
 /* We are linking against S1, create symbol containing the flash ID of S0.
  * This is used when writing code operating on the "other" slot.
  */
 _image_1_primary_slot_id = PM_S0_ID;
 
-#define ROM_ADDR PM_ADDRESS + PM_S1_ADDRESS - PM_S0_ADDRESS
-
-#else /* ! LINK_INTO_s1 */
+#else /* ! CONFIG_NCS_IS_VARIANT_IMAGE */
 
 #ifdef PM_S1_ID
 /* We are linking against S0, create symbol containing the flash ID of S1.
@@ -44,33 +46,58 @@ _image_1_primary_slot_id = PM_S0_ID;
 _image_1_primary_slot_id = PM_S1_ID;
 #endif /* PM_S1_ID */
 
-#define ROM_ADDR PM_ADDRESS
-#endif /* LINK_MCUBOOT_INTO_s1 */
-#define ROM_SIZE PM_SIZE
-#else
+#endif /* CONFIG_NCS_IS_VARIANT_IMAGE */
 
-#if (CONFIG_FLASH_SIZE == 0)
+#define ROM_ADDR PM_ADDRESS
+#define ROM_SIZE PM_SIZE
+
+#define RAM_SIZE PM_SRAM_SIZE
+#define RAM_ADDR PM_SRAM_ADDRESS
+
+#else /* ! USE_PARTITION_MANAGER */
+
+#if !defined(CONFIG_XIP) && (CONFIG_FLASH_SIZE == 0)
 #define ROM_ADDR RAM_ADDR
 #else
 #define ROM_ADDR (CONFIG_FLASH_BASE_ADDRESS + CONFIG_FLASH_LOAD_OFFSET)
 #endif
 
-#ifdef CONFIG_HAS_TI_CCFG
-#define CCFG_SIZE 88
-#define ROM_SIZE (CONFIG_FLASH_SIZE*1K - CONFIG_FLASH_LOAD_OFFSET - \
-	CCFG_SIZE)
-#define CCFG_ADDR (ROM_ADDR + ROM_SIZE)
-#else
 #if CONFIG_FLASH_LOAD_SIZE > 0
 #define ROM_SIZE CONFIG_FLASH_LOAD_SIZE
 #else
 #define ROM_SIZE (CONFIG_FLASH_SIZE*1K - CONFIG_FLASH_LOAD_OFFSET)
-#endif /* CONFIG_FLASH_LOAD_SIZE > 0 */
-#endif /* CONFIG_HAS_TI_CCFG */
-#endif /* USE_PARTITION_MANAGER */
+#endif
 
+#if defined(CONFIG_XIP)
+#if defined(CONFIG_IS_BOOTLOADER)
+#define RAM_SIZE (CONFIG_BOOTLOADER_SRAM_SIZE * 1K)
+#define RAM_ADDR (CONFIG_SRAM_BASE_ADDRESS + \
+	(CONFIG_SRAM_SIZE * 1K - RAM_SIZE))
+#else
 #define RAM_SIZE (CONFIG_SRAM_SIZE * 1K)
 #define RAM_ADDR CONFIG_SRAM_BASE_ADDRESS
+#endif
+#else
+#define RAM_SIZE (CONFIG_SRAM_SIZE * 1K - CONFIG_BOOTLOADER_SRAM_SIZE * 1K)
+#define RAM_ADDR CONFIG_SRAM_BASE_ADDRESS
+#endif
+
+#endif /* USE_PARTITION_MANAGER */
+
+#if DT_NODE_HAS_STATUS(DT_CHOSEN(zephyr_ccm), okay)
+#define CCM_SIZE DT_REG_SIZE(DT_CHOSEN(zephyr_ccm))
+#define CCM_ADDR DT_REG_ADDR(DT_CHOSEN(zephyr_ccm))
+#endif
+
+#if DT_NODE_HAS_STATUS(DT_CHOSEN(zephyr_itcm), okay)
+#define ITCM_SIZE DT_REG_SIZE(DT_CHOSEN(zephyr_itcm))
+#define ITCM_ADDR DT_REG_ADDR(DT_CHOSEN(zephyr_itcm))
+#endif
+
+#if DT_NODE_HAS_STATUS(DT_CHOSEN(zephyr_dtcm), okay)
+#define DTCM_SIZE DT_REG_SIZE(DT_CHOSEN(zephyr_dtcm))
+#define DTCM_ADDR DT_REG_ADDR(DT_CHOSEN(zephyr_dtcm))
+#endif
 
 #if defined(CONFIG_CUSTOM_SECTION_ALIGN)
 _region_min_align = CONFIG_CUSTOM_SECTION_MIN_ALIGN_SIZE;
@@ -97,7 +124,7 @@ _region_min_align = 4;
 
 MEMORY
     {
-    FLASH                 (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE
+    FLASH (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE
 #ifdef CONFIG_HAS_TI_CCFG
     FLASH_CCFG            (rwx): ORIGIN = CCFG_ADDR, LENGTH = CCFG_SIZE
 #endif
@@ -107,13 +134,9 @@ MEMORY
 #if DT_NODE_HAS_STATUS(DT_CHOSEN(zephyr_dtcm), okay)
     DTCM                  (rw) : ORIGIN = DT_REG_ADDR(DT_CHOSEN(zephyr_dtcm)), LENGTH = DT_REG_SIZE(DT_CHOSEN(zephyr_dtcm))
 #endif
-    SRAM                  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE
-#ifdef CONFIG_BT_STM32_IPM
-    SRAM1                 (rw) : ORIGIN = RAM1_ADDR, LENGTH = RAM1_SIZE
-    SRAM2                 (rw) : ORIGIN = RAM2_ADDR, LENGTH = RAM2_SIZE
-#endif
+    SRAM  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE
     /* Used by and documented in include/linker/intlist.ld */
-    IDT_LIST  (wx)      : ORIGIN = (RAM_ADDR + RAM_SIZE), LENGTH = 2K
+    IDT_LIST (wx) : ORIGIN = 0xFFFFF7FF, LENGTH = 2K
     }
 
 ENTRY(CONFIG_KERNEL_ENTRY)
@@ -139,8 +162,7 @@ SECTIONS
 
     GROUP_START(ROMABLE_REGION)
 
-	_image_rom_start = ROM_ADDR;
-
+	__rom_region_start = ROM_ADDR;
 
     SECTION_PROLOGUE(rom_start,,)
 	{
@@ -159,14 +181,20 @@ SECTIONS
 
 #endif /* CONFIG_CODE_DATA_RELOCATION */
 
+    SECTION_PROLOGUE(VERSION_REGION,0x00009000,)
+    {
+    KEEP(*(VERSION_SECTION))
+    } GROUP_LINK_IN(ROMABLE_REGION)
+
     SECTION_PROLOGUE(_TEXT_SECTION_NAME,,)
 	{
-	_image_text_start = .;
+	__text_region_start = .;
 
 #include <zephyr/linker/kobject-text.ld>
 
 	*(.text)
 	*(".text.*")
+	*(".TEXT.*")
 	*(.gnu.linkonce.t.*)
 
 	/*
@@ -177,7 +205,7 @@ SECTIONS
 
 	} GROUP_LINK_IN(ROMABLE_REGION)
 
-	_image_text_end = .;
+	__text_region_end = .;
 
 #if defined (CONFIG_CPLUSPLUS)
 	SECTION_PROLOGUE(.ARM.extab,,)
@@ -204,11 +232,10 @@ SECTIONS
 	__exidx_end = .;
 	} GROUP_LINK_IN(ROMABLE_REGION)
 
-	_image_rodata_start = .;
 	__rodata_region_start = .;
-		__rom_region_start = .;
 
 #include <zephyr/linker/common-rom.ld>
+#include <zephyr/linker/thread-local-storage.ld>
 
     SECTION_PROLOGUE(_RODATA_SECTION_NAME,,)
 	{
@@ -220,14 +247,6 @@ SECTIONS
  * zephyr_linker_sources() Cmake function.
  */
 #include <snippets-rodata.ld>
-#ifdef CONFIG_SOC_RODATA_LD
-#include <soc-rodata.ld>
-#endif
-
-#ifdef CONFIG_CUSTOM_RODATA_LD
-/* Located in project source directory */
-#include <custom-rodata.ld>
-#endif
 
 #include <zephyr/linker/kobject-rom.ld>
 
@@ -246,20 +265,11 @@ SECTIONS
 
 #include <zephyr/linker/cplusplus-rom.ld>
 
-	_image_rodata_end = .;
-	MPU_ALIGN(_image_rodata_end -_image_rom_start);
-	_image_rom_end = .;
 	__rodata_region_end = .;
+	MPU_ALIGN(__rodata_region_end -__rom_region_start);
+	__rom_region_end = .;
 
     GROUP_END(ROMABLE_REGION)
-
-/* Some TI SoCs have a special configuration footer, at the end of flash. */
-#ifdef CONFIG_HAS_TI_CCFG
-    SECTION_PROLOGUE(.ti_ccfg,,)
-    {
-    KEEP(*(_TI_CCFG_SECTION_NAME))
-    } > FLASH_CCFG
-#endif
 
     /*
      * These are here according to 'arm-zephyr-elf-ld --verbose',
@@ -280,16 +290,6 @@ SECTIONS
 	 */
 	. = ALIGN(_region_min_align);
 	_image_ram_start = .;
-
-#if defined(CONFIG_SOC_SERIES_STM32F0X) && !defined(CONFIG_IS_BOOTLOADER)
-    /* Must be first in ramable region */
-	SECTION_PROLOGUE(.st_stm32f0x_vt,(NOLOAD),)
-	{
-        _ram_vector_start = .;
-        . += _vector_end - _vector_start;
-        _ram_vector_end = .;
-	} GROUP_DATA_LINK_IN(RAMABLE_REGION, RAMABLE_REGION)
-#endif
 
 /* Located in generated directory. This file is populated by the
  * zephyr_linker_sources() Cmake function.
@@ -335,6 +335,8 @@ SECTIONS
 
 #endif  /* CONFIG_USERSPACE */
 
+    GROUP_START(DATA_REGION)
+
     SECTION_DATA_PROLOGUE(_DATA_SECTION_NAME,,)
 	{
 	__data_ram_start = .;
@@ -348,31 +350,32 @@ SECTIONS
  * zephyr_linker_sources() Cmake function.
  */
 #include <snippets-rwdata.ld>
-#ifdef CONFIG_SOC_RWDATA_LD
-#include <soc-rwdata.ld>
-#endif
-
-#ifdef CONFIG_CUSTOM_RWDATA_LD
-/* Located in project source directory */
-#include <custom-rwdata.ld>
-#endif
 
 #ifdef CONFIG_CODE_DATA_RELOCATION
 #include <linker_sram_data_relocate.ld>
 #endif
+	__data_end = .;
 
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
-
+    __data_size = __data_end - __data_start;
+    __data_load_start = LOADADDR(_DATA_SECTION_NAME);
     __data_rom_start = LOADADDR(_DATA_SECTION_NAME);
-	__data_region_load_start = LOADADDR(_DATA_SECTION_NAME);
+
+    __data_region_load_start = LOADADDR(_DATA_SECTION_NAME);
 
 #include <zephyr/linker/common-ram.ld>
 #include <zephyr/linker/kobject-data.ld>
 
 #include <zephyr/linker/cplusplus-ram.ld>
 
-    __data_ram_end = .;
+/* Located in generated directory. This file is populated by the
+ * zephyr_linker_sources() Cmake function.
+ */
+/* #include <snippets-data-sections.ld> */
+
     __data_region_end = .;
+    __data_ram_end = .;
+
 
 #ifndef CONFIG_USERSPACE
    SECTION_DATA_PROLOGUE(_BSS_SECTION_NAME,(NOLOAD),)
@@ -415,9 +418,6 @@ SECTIONS
  * zephyr_linker_sources() Cmake function.
  */
 #include <snippets-noinit.ld>
-#ifdef CONFIG_SOC_NOINIT_LD
-#include <soc-noinit.ld>
-#endif
 
         } GROUP_LINK_IN(RAMABLE_REGION)
 #endif /* CONFIG_USERSPACE */
@@ -432,6 +432,23 @@ SECTIONS
 
     GROUP_END(RAMABLE_REGION)
 
+#if DT_NODE_HAS_STATUS(DT_CHOSEN(zephyr_itcm), okay)
+GROUP_START(ITCM)
+
+	SECTION_PROLOGUE(_ITCM_SECTION_NAME,,SUBALIGN(4))
+	{
+		__itcm_start = .;
+		*(.itcm)
+		*(".itcm.*")
+		__itcm_end = .;
+	} GROUP_LINK_IN(ITCM AT> ROMABLE_REGION)
+
+	__itcm_size = __itcm_end - __itcm_start;
+	__itcm_load_start = LOADADDR(_ITCM_SECTION_NAME);
+
+GROUP_END(ITCM)
+#endif
+
 #if DT_NODE_HAS_STATUS(DT_CHOSEN(zephyr_dtcm), okay)
 GROUP_START(DTCM)
 
@@ -441,36 +458,30 @@ GROUP_START(DTCM)
 		__dtcm_bss_start = .;
 		*(.dtcm_bss)
 		*(".dtcm_bss.*")
+		__dtcm_bss_end = .;
 	} GROUP_LINK_IN(DTCM)
-
-	__dtcm_bss_end = .;
 
 	SECTION_PROLOGUE(_DTCM_NOINIT_SECTION_NAME, (NOLOAD),SUBALIGN(4))
 	{
 		__dtcm_noinit_start = .;
 		*(.dtcm_noinit)
 		*(".dtcm_noinit.*")
+		__dtcm_noinit_end = .;
 	} GROUP_LINK_IN(DTCM)
-
-	__dtcm_noinit_end = .;
 
 	SECTION_PROLOGUE(_DTCM_DATA_SECTION_NAME,,SUBALIGN(4))
 	{
 		__dtcm_data_start = .;
 		*(.dtcm_data)
 		*(".dtcm_data.*")
+		__dtcm_data_end = .;
 	} GROUP_LINK_IN(DTCM AT> ROMABLE_REGION)
 
-	__dtcm_data_end = .;
 	__dtcm_end = .;
 
-	__dtcm_data_rom_start = LOADADDR(_DTCM_DATA_SECTION_NAME);
+	__dtcm_data_load_start = LOADADDR(_DTCM_DATA_SECTION_NAME);
 
 GROUP_END(DTCM)
-#endif
-#ifdef CONFIG_CUSTOM_SECTIONS_LD
-/* Located in project source directory */
-#include <custom-sections.ld>
 #endif
 
 /* Located in generated directory. This file is populated by the
@@ -488,6 +499,9 @@ GROUP_END(DTCM)
 	KEEP(*(.gnu.attributes))
 	}
 
+    /* Sections generated from 'zephyr,memory-region' nodes */
+    /* LINKER_DT_SECTIONS() */
+
 /* Must be last in romable region */
 SECTION_PROLOGUE(.last_section,(NOLOAD),)
 {
@@ -495,6 +509,6 @@ SECTION_PROLOGUE(.last_section,(NOLOAD),)
 
 /* To provide the image size as a const expression,
  * calculate this value here. */
-_flash_used = LOADADDR(.last_section) - _image_rom_start;
+_flash_used = LOADADDR(.last_section) - __rom_region_start;
 
     }

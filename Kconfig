@@ -1,0 +1,29 @@
+#
+# Copyright (c) 2019 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+#
+
+menu "DM Config"
+
+config DM_SPM
+	bool "Use Secure Partition Manager"
+	default y if TRUSTED_EXECUTION_NONSECURE
+	# imply ARM_FIRMWARE_USES_SECURE_ENTRY_FUNCS
+
+if DM_SPM
+module=DM_SPM
+source "${ZEPHYR_BASE}/../nrf/subsys/partition_manager/Kconfig.template.build_strategy"
+endif
+
+config FW_INFO_MAGIC_LEN
+	int
+	default 12
+	help
+	  Annoyingly this needs to be set to compile
+
+endmenu # DM config
+
+menu "Zephyr Kernel"
+source "Kconfig.zephyr"
+endmenu

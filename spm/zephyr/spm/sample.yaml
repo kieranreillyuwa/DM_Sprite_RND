@@ -1,0 +1,8 @@
+sample:
+  name: dm spm
+tests:
+  samples.nrf9160.spm:
+    build_only: true
+    build_on_all: true
+    platform_whitelist: g70
+    tags: ci_build

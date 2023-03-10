@@ -20,7 +20,9 @@ void nrf_modem_fault_handler(struct nrf_modem_fault_info *fault_info)
 
 void main(void)
 {
-	nrf_modem_lib_init(NORMAL_MODE);
+	int32_t iResponse = nrf_modem_lib_init(NORMAL_MODE);
+
+	printk("Response code is: %d", iResponse);
 
 	for(;;)
 	{
