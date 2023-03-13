@@ -20,12 +20,12 @@
 
 /* physical address of RAM */
 /* #ifdef CONFIG_XIP */
-#define ROMABLE_REGION FLASH
-#define RAMABLE_REGION SRAM
-/* #else
+/* #define ROMABLE_REGION FLASH
+#define RAMABLE_REGION SRAM */
+/*  #else */
 #define ROMABLE_REGION SRAM
 #define RAMABLE_REGION SRAM
-#endif */
+/* #endif */ 
 
 #if USE_PARTITION_MANAGER
 
@@ -48,7 +48,8 @@ _image_1_primary_slot_id = PM_S1_ID;
 
 #endif /* CONFIG_NCS_IS_VARIANT_IMAGE */
 
-#define ROM_ADDR PM_ADDRESS
+/* #define ROM_ADDR PM_ADDRESS */
+#define ROM_ADDR PM_SRAM_ADDRESS
 #define ROM_SIZE PM_SIZE
 
 #define RAM_SIZE PM_SRAM_SIZE

@@ -1,10 +1,10 @@
-# boot:
-#   address: 0x0000
-#   size: 0x8000
-#   placement:
-#     before: [app,spm]
-spm:
+boot:
   address: 0x0000
+  size: 0x8000
+  placement:
+    before: [app,spm]
+spm:
+  address: 0x8000
   size: 0x8000
   placement:
     before: app
@@ -12,6 +12,9 @@ reserved:
   address: 0x75000
   size: 0x8B000
 spm_sram:
-  address: 0x2003B000
-  size: 0x5000
+  address: 0x20030000
+  size: 0x8000
   region: sram_primary
+boot_sram:
+  address: 0x20038000
+  size: 0x8000

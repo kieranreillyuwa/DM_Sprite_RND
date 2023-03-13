@@ -19,8 +19,8 @@
 #include <zephyr/linker/linker-tool.h>
 
 /* physical address of RAM */
-/* #define ROMABLE_REGION FLASH */
-#define ROMABLE_REGION SRAM
+#define ROMABLE_REGION FLASH
+/* #define ROMABLE_REGION SRAM */
 #define RAMABLE_REGION SRAM
 
 #define _DATA_IN_ROM
@@ -45,7 +45,7 @@ _image_1_primary_slot_id = PM_S0_ID;
 _image_1_primary_slot_id = PM_S1_ID;
 #endif /* PM_S1_ID */
 
-#define ROM_ADDR PM_ADDRESS
+#define ROM_ADDR PM_BOOT_ADDRESS
 #endif /* LINK_MCUBOOT_INTO_s1 */
 #define ROM_SIZE PM_SIZE
 #else

@@ -22,11 +22,13 @@
 
 #if USE_PARTITION_MANAGER
 #include <pm_config.h>
-#define NON_SECURE_APP_ADDRESS PM_APP_ADDRESS
+#define NON_SECURE_APP_ADDRESS PM_SRAM_NONSECURE_ADDRESS
+// #define NON_SECURE_APP_ADDRESS PM_APP_ADDRESS
 #ifdef PM_SRAM_SECURE_SIZE
 #define NON_SECURE_RAM_OFFSET PM_SRAM_SECURE_SIZE
 #else
 #define NON_SECURE_RAM_OFFSET 0
+#define SECURE_RAM_OFFSET 0x00030000
 #endif
 #else
 #include <storage/flash_map.h>
@@ -36,8 +38,12 @@
 
 #define NON_SECURE_FLASH_REGION_INDEX \
     ((NON_SECURE_APP_ADDRESS) / (FLASH_SECURE_ATTRIBUTION_REGION_SIZE))
-#define NON_SECURE_RAM_REGION_INDEX \
-    ((NON_SECURE_RAM_OFFSET) / (RAM_SECURE_ATTRIBUTION_REGION_SIZE))
+
+
+#define SECURE_RAM_REGION_INDEX \
+    ((SECURE_RAM_OFFSET) / (RAM_SECURE_ATTRIBUTION_REGION_SIZE))
+// #define NON_SECURE_RAM_REGION_INDEX \
+//     ((NON_SECURE_RAM_OFFSET) / (RAM_SECURE_ATTRIBUTION_REGION_SIZE))
  
 typedef enum PeriphType_t
 {
@@ -190,11 +196,18 @@ static void ConfigNonSecureRegion(void)
 
     for (UINT32 iRamIndex = 0; iRamIndex < NUM_RAM_SECURE_ATTRIBUTION_REGIONS; iRamIndex++)
     {
-        if (iRamIndex < NON_SECURE_RAM_REGION_INDEX)
+        if (iRamIndex >= SECURE_RAM_REGION_INDEX)
             NRF_SPU->RAMREGION[iRamIndex].PERM = SRAM_READ | SRAM_WRITE | SRAM_EXEC | SRAM_LOCK | SRAM_SECURE;
         else
             NRF_SPU->RAMREGION[iRamIndex].PERM = SRAM_READ | SRAM_WRITE | SRAM_EXEC | SRAM_LOCK | SRAM_NONSEC;
     }
+    // for (UINT32 iRamIndex = 0; iRamIndex < NUM_RAM_SECURE_ATTRIBUTION_REGIONS; iRamIndex++)
+    // {
+    //     if (iRamIndex < NON_SECURE_RAM_REGION_INDEX)
+    //         NRF_SPU->RAMREGION[iRamIndex].PERM = SRAM_READ | SRAM_WRITE | SRAM_EXEC | SRAM_LOCK | SRAM_SECURE;
+    //     else
+    //         NRF_SPU->RAMREGION[iRamIndex].PERM = SRAM_READ | SRAM_WRITE | SRAM_EXEC | SRAM_LOCK | SRAM_NONSEC;
+    // }
     // watchdog_Feed();
 
     for (UINT32 i = 0; i < ARRAY_SIZE(maNonSecurePeripherals); i++)

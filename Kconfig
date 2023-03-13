@@ -10,6 +10,9 @@ config DM_SPM
 	bool "Use Secure Partition Manager"
 	default y if TRUSTED_EXECUTION_NONSECURE
 	# imply ARM_FIRMWARE_USES_SECURE_ENTRY_FUNCS
+config TEST_BOOT
+	bool "test bl"
+	default y if TRUSTED_EXECUTION_NONSECURE
 
 if DM_SPM
 module=DM_SPM
