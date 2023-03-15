@@ -1,33 +1,16 @@
 .. _hello_world:
 
-Hello World
+Sprite RND
 ###########
 
 Overview
 ********
 
-A simple sample that can be used with any :ref:`supported board <boards>` and
-prints "Hello World" to the console.
+This is the same as the "in_ram" branch however in flash. Just for reference.
 
 Building and Running
 ********************
+To build, just do a pristine build.
 
-This application can be built and executed on QEMU as follows:
+To debug, just press debug in VSCode nRF Connect SDK.
 
-.. zephyr-app-commands::
-   :zephyr-app: samples/hello_world
-   :host-os: unix
-   :board: qemu_x86
-   :goals: run
-   :compact:
-
-To build for another board, change "qemu_x86" above to that board's name.
-
-Sample Output
-=============
-
-.. code-block:: console
-
-    Hello World! x86
-
-Exit QEMU by pressing :kbd:`CTRL+A` :kbd:`x`.
