@@ -1,33 +1,27 @@
 .. _hello_world:
 
-Hello World
+Sprite RND
 ###########
 
 Overview
 ********
 
-A simple sample that can be used with any :ref:`supported board <boards>` and
-prints "Hello World" to the console.
+This is a test project for the nRF9160 DK for exploring why the modem library does not want to initialise in RAM.
+There are three components:
+    1.  Bootloader: this is just a small image to allow debugging in VSCode. This bootloader jumps to the SPM (once the SPM is loaded).
+    2.  SPM: This is loaded in at 0x20030000 in SRAM. This just modifies partitions as secure or non-secure then jumps to application.
+    3.  Application: All this tries to do is initialise the nrf modem lib. It fails. This image is non-secure and loads in at 0x20000000.
 
 Building and Running
 ********************
+To build, just do a pristine build.
 
-This application can be built and executed on QEMU as follows:
+To run in debug: 
+    1. Put a breakpoint in the bootloader main.c before the line of code {SCB->VTOR = USER_CODE_ADDRESS;}
+    2. Start execution (flashing the board will not load the SPM and application images).
+    3. Load the SPM and application images in the debug terminal using the following commands:
+        -exec load build/spm/zephyr/zephyr.elf
+        -exec load build/zephyr/zephyr.elf
+        Using the .hex equivalents makes no difference. 
+    4. Step through and/or execute as desired. 
 
-.. zephyr-app-commands::
-   :zephyr-app: samples/hello_world
-   :host-os: unix
-   :board: qemu_x86
-   :goals: run
-   :compact:
-
-To build for another board, change "qemu_x86" above to that board's name.
-
-Sample Output
-=============
-
-.. code-block:: console
-
-    Hello World! x86
-
-Exit QEMU by pressing :kbd:`CTRL+A` :kbd:`x`.
