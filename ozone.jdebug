@@ -328,10 +328,10 @@ void _SetupTarget(void) {
   unsigned int PC;
   // unsigned int VectorTableAddr;
 
-  Target.LoadMemory("$(ProjectDir)/build/spm/zephyr/zephyr.elf", 0x00000000);
-  Target.LoadMemory("$(ProjectDir)/build/zephyr/zephyr.elf", 0x00008000);
-  SP = Target.ReadU32(0x00000000);
-  PC = Target.ReadU32(0x00000004);
+  Target.LoadMemory("$(ProjectDir)/build/spm/zephyr/zephyr.elf", 0x20030000);
+  Target.LoadMemory("$(ProjectDir)/build/zephyr/zephyr.elf", 0x20000000);
+  SP = Target.ReadU32(0x20000000);
+  PC = Target.ReadU32(0x20000004);
 
   // VectorTableAddr = Elf.GetBaseAddr();
   //
