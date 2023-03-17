@@ -96,6 +96,9 @@ _region_min_align = 4;
     . = ALIGN(_region_min_align)
 #endif
 
+#define SRAM_CODE_ADDR 0x20008000
+#define SRAM_CODE_SIZE 128K
+
 MEMORY
     {
     FLASH                 (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE
@@ -108,12 +111,13 @@ MEMORY
 #if DT_NODE_HAS_STATUS(DT_CHOSEN(zephyr_dtcm), okay)
     DTCM                  (rw) : ORIGIN = DT_REG_ADDR(DT_CHOSEN(zephyr_dtcm)), LENGTH = DT_REG_SIZE(DT_CHOSEN(zephyr_dtcm))
 #endif
-    SRAM                  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE
+    SRAM                  (rwx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE
 #ifdef CONFIG_BT_STM32_IPM
     SRAM1                 (rw) : ORIGIN = RAM1_ADDR, LENGTH = RAM1_SIZE
     SRAM2                 (rw) : ORIGIN = RAM2_ADDR, LENGTH = RAM2_SIZE
 #endif
     /* Used by and documented in include/linker/intlist.ld */
+	SRAM_CODE             (rwx) : ORIGIN = SRAM_CODE_ADDR, LENGTH = SRAM_CODE_SIZE
     IDT_LIST  (wx)      : ORIGIN = (RAM_ADDR + RAM_SIZE), LENGTH = 2K
     }
 

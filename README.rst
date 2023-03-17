@@ -25,3 +25,6 @@ To run in debug:
         Using the .hex equivalents makes no difference. 
     4. Step through and/or execute as desired. 
 
+\n 
+Can also press Debug with Ozone and that provides some debugging functionality. 
+

@@ -9,6 +9,7 @@
 #include "spmInternal.h"
 #include "dmtypes.h"
 
+#include "nrfx.h"
 
 #if !defined(CONFIG_ARM_SECURE_FIRMWARE)
 #error "Module requires compiling for Secure ARM Firmware"
@@ -22,7 +23,8 @@
 
 #if USE_PARTITION_MANAGER
 #include <pm_config.h>
-#define NON_SECURE_APP_ADDRESS PM_SRAM_NONSECURE_ADDRESS
+#define NON_SECURE_APP_ADDRESS 0x20000000
+// #define NON_SECURE_APP_ADDRESS PM_SRAM_NONSECURE_ADDRESS
 // #define NON_SECURE_APP_ADDRESS PM_APP_ADDRESS
 #ifdef PM_SRAM_SECURE_SIZE
 #define NON_SECURE_RAM_OFFSET PM_SRAM_SECURE_SIZE
@@ -227,6 +229,18 @@ static void ConfigNonSecureRegion(void)
         }
     }
     // watchdog_Feed();
+
+    /* Set IPC peripherals as ns*/
+
+    const UINT32 field = (1 << SPU_PERIPHID_PERM_SECATTR_Pos);
+    NRF_SPU_S->PERIPHID[NRFX_PERIPHERAL_ID_GET(NRF_CLOCK_NS)].PERM &= ~field;
+    NRF_SPU_S->PERIPHID[NRFX_PERIPHERAL_ID_GET(NRF_POWER_NS)].PERM &= ~field;
+    NRF_SPU_S->PERIPHID[NRFX_PERIPHERAL_ID_GET(NRF_UARTE0_NS)].PERM &= ~field;
+    NRF_SPU_S->PERIPHID[NRFX_PERIPHERAL_ID_GET(NRF_TIMER0_NS)].PERM &= ~field;
+    NRF_SPU_S->PERIPHID[NRFX_PERIPHERAL_ID_GET(NRF_TIMER1_NS)].PERM &= ~field;
+    NRF_SPU_S->PERIPHID[NRFX_PERIPHERAL_ID_GET(NRF_EGU1_NS)].PERM &= ~field;
+    NRF_SPU_S->PERIPHID[NRFX_PERIPHERAL_ID_GET(NRF_IPC_NS)].PERM &= ~field;
+    NRF_SPU_S->PERIPHID[NRFX_PERIPHERAL_ID_GET(NRF_P0_NS)].PERM &= ~field;
 
     NRF_SPU->DPPI[0].PERM = 0;
     NRF_SPU->GPIOPORT[0].PERM = 0;

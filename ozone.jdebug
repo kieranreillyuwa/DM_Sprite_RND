@@ -25,7 +25,7 @@ void OnProjectLoad (void) {
   Project.AddPathSubstitute ("C:/Users/kiera/DigitalMatter_Compilable/G70Cellular/SpriteDebugging", "$(ProjectDir)");
   Project.AddPathSubstitute ("c:/users/kiera/digitalmatter_compilable/g70cellular/spritedebugging", "$(ProjectDir)");
   Project.SetDevice ("nRF9160_xxAA");
-  Project.SetHostIF ("USB", "960015149");
+  Project.SetHostIF ("USB", "960049226");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M33F.svd");
@@ -330,8 +330,8 @@ void _SetupTarget(void) {
 
   Target.LoadMemory("$(ProjectDir)/build/spm/zephyr/zephyr.elf", 0x20030000);
   Target.LoadMemory("$(ProjectDir)/build/zephyr/zephyr.elf", 0x20000000);
-  SP = Target.ReadU32(0x20000000);
-  PC = Target.ReadU32(0x20000004);
+  SP = Target.ReadU32(0x20030000);
+  PC = Target.ReadU32(0x20030004);
 
   // VectorTableAddr = Elf.GetBaseAddr();
   //

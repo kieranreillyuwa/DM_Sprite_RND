@@ -71,6 +71,7 @@ static void ExecuteUserCode(void)
 	__DSB(); // Force Memory Write before continuing 
 	__ISB(); // Flush and refill pipeline with updated permissions 
 
+
 	SCB->VTOR = USER_CODE_ADDRESS;
 	UINT32 *pVectorTable = (UINT32 *)USER_CODE_ADDRESS;
 
